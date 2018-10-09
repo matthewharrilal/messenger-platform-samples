@@ -12,7 +12,7 @@ function call (path, payload, callback) {
   const access_token = process.env.PAGE_ACCESS_TOKEN || env.PAGE_ACCESS_TOKEN;
   const graph_url = 'https://graph.facebook.com/me';
 
-  if (!path) {
+  if (!path) { // If the path doesn't exist then render error
     console.error('No endpoint specified on Messenger send!');
     return;
   } else if (!access_token || !graph_url) {
@@ -30,7 +30,7 @@ function call (path, payload, callback) {
     if (!error && response.statusCode === 200) {
       console.log('Message sent succesfully');
     } else {
-      console.error('Error: ' + error);        
+      console.error('Error: ' + error);
     }
     callback(body);
   });
