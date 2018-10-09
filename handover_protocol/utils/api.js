@@ -20,7 +20,7 @@ function call (path, payload, callback) {
     return;
   }
 
-  request({
+  request({ // Creates new request object 
     uri: graph_url + path,
     qs: {'access_token': access_token},
     method: 'POST',

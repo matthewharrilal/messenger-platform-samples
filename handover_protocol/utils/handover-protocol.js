@@ -18,7 +18,7 @@ function passThreadControl (userPsid, targetAppId) {
     target_app_id: targetAppId
   };
 
-  api.call('/pass_thread_control', payload, () => {});
+  api.call('/pass_thread_control', payload, () => {}); // Pass the thread control to the target application with the recipient of the action
 }
 
 function takeThreadControl (userPsid) {
@@ -29,7 +29,7 @@ function takeThreadControl (userPsid) {
     }
   };
 
-  api.call('/take_thread_control', payload, () => {});
+  api.call('/take_thread_control', payload, () => {}); // Take thread control when called pass the user who initiated the action
 }
 
 module.exports = {
