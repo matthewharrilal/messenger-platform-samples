@@ -22,7 +22,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
 // webhook verification
-app.get('/webhook', (req, res) => {
+app.get('/webhook', (req, res) => { // When making a request to the webhook checks if the token matches the one in the environment variable
   if (req.query['hub.verify_token'] === env.VERIFY_TOKEN) {
     res.send(req.query['hub.challenge']);
   }
