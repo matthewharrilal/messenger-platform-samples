@@ -9,98 +9,119 @@
 // import dependencies
 const bodyParser = require('body-parser'),
       express = require('express'),
-      app = express();
+      app = express().use(bodyParser.json()); // creates express http server
 
-// import helper libs
-const sendQuickReply = require('./utils/quick-reply'), // Send message to specific user
-      HandoverProtocol = require('./utils/handover-protocol'), // Transfer control between applications
-      env = require('./env');
+  // Sets server port and logs message on success
+  app.listen(process.env.PORT || 3000, () => console.log('webhook is listening'));
 
-// webhook setup
-app.listen(process.env.PORT || env.PORT || 1337, () => console.log('webhook is listening'));
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(bodyParser.json());
+  app.post('/webhook', (req, res) => {
+      let body = req.body // Contains the body of the request
 
-// webhook verification
-app.get('/webhook', (req, res) => { // When making a request to the webhook checks if the token matches the one in the environment variable
-  if (req.query['hub.verify_token'] === env.VERIFY_TOKEN) {
-    res.send(req.query['hub.challenge']);
-  }
-});
-
-// webhook
-app.post('/webhook', (req, res) => {
-
-  // parse messaging array
-  const webhook_events = req.body.entry[0];
-
-  // initialize quick reply properties
-  let text, title, payload;
-
-  // Secondary Receiver is in control - listen on standby channel
-  if (webhook_events.standby) {
-
-    // iterate webhook events from standby channel
-    webhook_events.standby.forEach(event => {
-
-      const psid = event.sender.id;
-      const message = event.message;
-
-      if (message && message.quick_reply && message.quick_reply.payload == 'take_from_inbox') {
-        // quick reply to take from Page inbox was clicked
-        text = 'The Primary Receiver is taking control back. \n\n Tap "Pass to Inbox" to pass thread control to the Page Inbox.';
-        title = 'Pass to Inbox';
-        payload = 'pass_to_inbox';
-
-        sendQuickReply(psid, text, title, payload);
-        HandoverProtocol.takeThreadControl(psid);
+      if (body.object == 'page') {
+          body.entry.forEach(function(entry) {
+              let webhookEvent = entry.messaging[0] // Array will only ever contain one message at a time so grab the first object
+              console.log('This is the webhook event ' + webhookEvent)
+          });
+          res.status(200).send('Event Recieved');
       }
-
-    });
-  }
-
-  // Bot is in control - listen for messages
-  if (webhook_events.messaging) {
-
-    // iterate webhook events
-    webhook_events.messaging.forEach(event => {
-      // parse sender PSID and message
-      const psid = event.sender.id;
-      const message = event.message;
-
-      if (message && message.quick_reply && message.quick_reply.payload == 'pass_to_inbox') {
-
-        // quick reply to pass to Page inbox was clicked
-        let page_inbox_app_id = 263902037430900;
-        text = 'The Primary Receiver is passing control to the Page Inbox. \n\n Tap "Take From Inbox" to have the Primary Receiver take control back.';
-        title = 'Take From Inbox';
-        payload = 'take_from_inbox';
-
-        sendQuickReply(psid, text, title, payload);
-        HandoverProtocol.passThreadControl(psid, page_inbox_app_id);
-
-      } else if (event.pass_thread_control) {
-
-        // thread control was passed back to bot manually in Page inbox
-        text = 'You passed control back to the Primary Receiver by marking "Done" in the Page Inbox. \n\n Tap "Pass to Inbox" to pass control to the Page Inbox.';
-        title = 'Pass to Inbox';
-        payload = 'pass_to_inbox';
-
-        sendQuickReply(psid, text, title, payload);
-
-      } else if (message && !message.is_echo) {
-
-        // default
-        text = 'Welcome! The bot is currently in control. \n\n Tap "Pass to Inbox" to pass control to the Page Inbox.';
-        title = 'Pass to Inbox';
-        payload = 'pass_to_inbox';
-
-        sendQuickReply(psid, text, title, payload);
+      else () {
+          // Returns a 404 if event is not from page subscription
+          res.status(404);
       }
+  });
 
-    });
-  }
+  
 
-  // respond to all webhook events with 200 OK
-  res.sendStatus(200);
-});
+// // import helper libs
+// const sendQuickReply = require('./utils/quick-reply'), // Send message to specific user
+//       HandoverProtocol = require('./utils/handover-protocol'), // Transfer control between applications
+//       env = require('./env');
+//
+// // webhook setup
+// app.listen(process.env.PORT || env.PORT || 1337, () => console.log('webhook is listening'));
+// app.use(bodyParser.urlencoded({extended: false}));
+// app.use(bodyParser.json());
+//
+// // webhook verification
+// app.get('/webhook', (req, res) => { // When making a request to the webhook checks if the token matches the one in the environment variable
+//   if (req.query['hub.verify_token'] === env.VERIFY_TOKEN) {
+//     res.send(req.query['hub.challenge']);
+//   }
+// });
+//
+// // webhook
+// app.post('/webhook', (req, res) => {
+//
+//   // parse messaging array
+//   const webhook_events = req.body.entry[0];
+//
+//   // initialize quick reply properties
+//   let text, title, payload;
+//
+//   // Secondary Receiver is in control - listen on standby channel
+//   if (webhook_events.standby) {
+//
+//     // iterate webhook events from standby channel
+//     webhook_events.standby.forEach(event => {
+//
+//       const psid = event.sender.id;
+//       const message = event.message;
+//
+//       if (message && message.quick_reply && message.quick_reply.payload == 'take_from_inbox') {
+//         // quick reply to take from Page inbox was clicked
+//         text = 'The Primary Receiver is taking control back. \n\n Tap "Pass to Inbox" to pass thread control to the Page Inbox.';
+//         title = 'Pass to Inbox';
+//         payload = 'pass_to_inbox';
+//
+//         sendQuickReply(psid, text, title, payload);
+//         HandoverProtocol.takeThreadControl(psid);
+//       }
+//
+//     });
+//   }
+//
+//   // Bot is in control - listen for messages
+//   if (webhook_events.messaging) {
+//
+//     // iterate webhook events
+//     webhook_events.messaging.forEach(event => {
+//       // parse sender PSID and message
+//       const psid = event.sender.id;
+//       const message = event.message;
+//
+//       if (message && message.quick_reply && message.quick_reply.payload == 'pass_to_inbox') {
+//
+//         // quick reply to pass to Page inbox was clicked
+//         let page_inbox_app_id = 263902037430900;
+//         text = 'The Primary Receiver is passing control to the Page Inbox. \n\n Tap "Take From Inbox" to have the Primary Receiver take control back.';
+//         title = 'Take From Inbox';
+//         payload = 'take_from_inbox';
+//
+//         sendQuickReply(psid, text, title, payload);
+//         HandoverProtocol.passThreadControl(psid, page_inbox_app_id);
+//
+//       } else if (event.pass_thread_control) {
+//
+//         // thread control was passed back to bot manually in Page inbox
+//         text = 'You passed control back to the Primary Receiver by marking "Done" in the Page Inbox. \n\n Tap "Pass to Inbox" to pass control to the Page Inbox.';
+//         title = 'Pass to Inbox';
+//         payload = 'pass_to_inbox';
+//
+//         sendQuickReply(psid, text, title, payload);
+//
+//       } else if (message && !message.is_echo) {
+//
+//         // default
+//         text = 'Welcome! The bot is currently in control. \n\n Tap "Pass to Inbox" to pass control to the Page Inbox.';
+//         title = 'Pass to Inbox';
+//         payload = 'pass_to_inbox';
+//
+//         sendQuickReply(psid, text, title, payload);
+//       }
+//
+//     });
+//   }
+//
+//   // respond to all webhook events with 200 OK
+//   res.sendStatus(200);
+// });
